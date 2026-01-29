@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>愛(I)雞(G)農場紀錄</title>
+    <style>
+        body { background-color: #FFF9E3; font-family: "Microsoft JhengHei", sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background-color: white; border: 8px solid #FFCE67; border-radius: 40px; padding: 25px; width: 320px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        h1 { color: #795548; font-size: 26px; margin: 0; }
+        .date-display { color: #8BC34A; font-weight: bold; margin-bottom: 10px; font-size: 20px; }
+        .name-input { width: 90%; padding: 12px; margin-bottom: 10px; border-radius: 15px; border: 2px solid #FFCE67; font-size: 16px; text-align: center; }
+        .egg-box { background: #fff; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; width: 100px; height: 120px; margin: 5px auto; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 4px solid #FFCE67; }
+        .count { font-size: 55px; font-weight: bold; color: #795548; line-height: 1; }
+        .btn-group { display: flex; gap: 15px; margin-top: 10px; padding: 0 10px; }
+        button { flex: 1; padding: 15px; font-size: 24px; border-radius: 20px; border: none; cursor: pointer; box-shadow: 0 4px 0 #ddd; }
+        .plus { background-color: #8BC34A; color: white; box-shadow: 0 4px 0 #558B2F; }
+        .minus { background-color: #FFAB91; color: white; box-shadow: 0 4px 0 #D84315; }
+        .submit { background-color: #FFCE67; color: #795548; width: 94%; margin-top: 15px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 0 #F57F17; }
+        button:active { transform: translateY(2px); box-shadow: 0 1px 0 #bbb; }
+        .today-list-box { margin-top: 20px; padding: 15px; background-color: #F0F4C3; border-radius: 20px; border: 2px solid #C5E1A5; }
+        .list-title { font-size: 14px; color: #558B2F; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #C5E1A5; }
+        .record-item { font-size: 14px; color: #33691E; text-align: left; padding: 3px 0; border-bottom: 1px dotted #AED581; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>愛(I)雞(G)農場</h1>
+    <div class="date-display" id="today-date">--/--/--</div>
+    
+    <input type="text" id="picker-name" class="name-input" placeholder="輸入紀錄者姓名">
+
+    <div class="egg-box">
+        <div class="count" id="num">0</div>
+        <div style="color:#999; font-size: 12px;">顆蛋</div>
+    </div>
+
+    <div class="btn-group">
+        <button type="button" class="minus" onclick="changeCount(-1)">－</button>
+        <button type="button" class="plus" onclick="changeCount(1)">＋</button>
+    </div>
+
+    <button type="button" class="submit" onclick="sendData()">確認並傳送</button>
+
+    <div class="today-list-box">
+        <div class="list-title">📋 今日收蛋英雄榜</div>
+        <div id="today-records">目前尚無紀錄</div>
+    </div>
+</div>
+
+<script>
+    // --- 這裡請填寫你的資訊 ---
+    var scriptUrl = "https://script.google.com/macros/s/AKfycbw3nAbejonhvPzQsLYFKLI-xKm7Z6A_ky54oAcr24cZWNmdn76DQGfMtC6LWdW1y5Ar/exec";
+    var pass = "0000";
+    // -----------------------
+
+    var countNum = 0;
+
+    // 1. 設定日期與初始化
+    window.onload = function() {
+        var now = new Date();
+        var dateStr = now.getFullYear() + "/" + (now.getMonth()+1) + "/" + now.getDate();
+        document.getElementById('today-date').innerText = "📅 " + dateStr;
+        
+        // 檢查是否換天
+        var lastDate = localStorage.getItem('lastDate');
+        if (lastDate !== dateStr) {
+            localStorage.setItem('todayRecords', JSON.stringify([]));
+            localStorage.setItem('lastDate', dateStr);
+        }
+        showList();
+    };
+
+    // 2. 加減功能
+    function changeCount(val) {
+        countNum += val;
+        if (countNum < 0) countNum = 0;
+        document.getElementById('num').innerText = countNum;
+    }
+
+    // 3. 顯示清單
+    function showList() {
+        var records = JSON.parse(localStorage.getItem('todayRecords')) || [];
+        var listDiv = document.getElementById('today-records');
+        if (records.length === 0) {
+            listDiv.innerText = "目前尚無紀錄";
+            return;
+        }
+        var html = "";
+        for (var i = records.length - 1; i >= 0; i--) {
+            html += "<div class='record-item'>⏱ " + records[i].time + " | 👤 " + records[i].name + " | 🥚 " + records[i].count + "顆</div>";
+        }
+        listDiv.innerHTML = html;
+    }
+
+    // 4. 上傳功能
+    function sendData() {
+        var name = document.getElementById('picker-name').value;
+        if (!name) { alert("請輸入姓名"); return; }
+        if (countNum === 0) { alert("請先數蛋"); return; }
+
+        var inputPass = prompt("管理員密碼：");
+        if (inputPass === pass) {
+            var now = new Date();
+            var timeStr = now.getHours() + ":" + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+
+            // 儲存到手機/電腦記憶體
+            var records = JSON.parse(localStorage.getItem('todayRecords')) || [];
+            records.push({ name: name, time: timeStr, count: countNum });
+            localStorage.setItem('todayRecords', JSON.stringify(records));
+
+            // 傳送到 Google
+            fetch(scriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ name: name, count: countNum, time: timeStr })
+            });
+
+            alert("🎉 上傳成功！");
+            countNum = 0;
+            document.getElementById('num').innerText = "0";
+            document.getElementById('picker-name').value = "";
+            showList();
+        } else if (inputPass !== null) {
+            alert("密碼錯誤");
+        }
+    }
+</script>
+</body>
+</html>
